@@ -1,0 +1,32 @@
+# C++ / CMake build artifacts
+build/
+bin/
+lib/
+*.exe
+*.dll
+*.so
+*.dylib
+*.a
+*.lib
+*.pdb
+*.ilk
+
+# CMake generated files
+CMakeCache.txt
+CMakeFiles/
+cmake_install.cmake
+build.ninja
+.ninja_deps
+.ninja_log
+qtsettings.cmake
+
+# Qt Creator & IDE settings
+.qtcreator/
+CMakeLists.txt.user*
+.qt/
+.qtc/
+.qtc_clangd/
+
+# Testing & Autogen
+Testing/
+*_autogen/

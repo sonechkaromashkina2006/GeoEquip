@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="utf-8">
+    <title>GIS Map</title>
+    <script src="qrc:///qtwebchannel/qwebchannel.js"></script>
+    <style>
+        html, body, #map { width: 100%; height: 100%; margin: 0; }
+    </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+    var isMapReady = false;
+    var pendingActions = [];
+    var connectionLines = [];
+    var qtBridge = null;
+
+    // Шаг 1: ждём QWebChannel
+    document.addEventListener('DOMContentLoaded', function() {
+        if (typeof QWebChannel === 'undefined') {
+            console.error('QWebChannel не загружен');
+            return;
+        }
+
+        new QWebChannel(qt.webChannelTransport, function(channel) {
+            qtBridge = channel.objects.qt;
+            // Шаг 2: после QWebChannel грузим Яндекс
+            loadYandexMaps();
+        });
+    });
+
+    function loadYandexMaps() {
+        var s = document.createElement('script');
+        s.type = 'text/javascript';
+        s.src = 'https://api-maps.yandex.ru/2.1/?apikey=f301d10c-f98b-4229-a923-46dab208b6d9&lang=ru_RU';
+        s.onload = function() {
+            ymaps.ready(function() {
+                window.map = new ymaps.Map('map', {
+                    center: [55.0, 48.0],
+                    zoom: 6
+                });
+                isMapReady = true;
+                for (var i = 0; i < pendingActions.length; i++) {
+                    pendingActions[i]();
+                }
+                pendingActions = [];
+            });
+        };
+        document.head.appendChild(s);
+    }
+
+    function clearMap() {
+        if (!isMapReady) { pendingActions.push(function(){ clearMap(); }); return; }
+        clearConnections();
+        map.geoObjects.removeAll();
+    }
+
+    function addPoint(lat, lon, color, text, enterpriseName) {
+        if (!isMapReady) { pendingActions.push(function(){ addPoint(lat, lon, color, text, enterpriseName); }); return; }
+        var p = new ymaps.Placemark(
+            [lat, lon],
+            { balloonContent: text },
+            { preset: 'islands#circleIcon', iconColor: color }
+        );
+        var eName = enterpriseName;
+        p.events.add('click', function() {
+            if (qtBridge) { qtBridge.onEnterpriseClicked(eName, lat, lon); }
+        });
+        map.geoObjects.add(p);
+    }
+
+    function showConnections(centerLat, centerLon, similarPoints) {
+        if (!isMapReady) { pendingActions.push(function(){ showConnections(centerLat, centerLon, similarPoints); }); return; }
+        clearConnections();
+        var cLat = Number(centerLat);
+        var cLon = Number(centerLon);
+        if (typeof similarPoints === 'string') {
+            try { similarPoints = JSON.parse(similarPoints); } catch(e) { return; }
+        }
+        if (!Array.isArray(similarPoints)) return;
+        for (var i = 0; i < similarPoints.length; i++) {
+            var point = similarPoints[i];
+            var pLat = Number(point.lat);
+            var pLon = Number(point.lon);
+            if (isNaN(pLat) || isNaN(pLon)) continue;
+            var line = new ymaps.Polyline(
+                [[cLat, cLon], [pLat, pLon]],
+                { balloonContent: 'Общих категорий: ' + (point.shared_categories || 0) + '<br>Общих задач: ' + (point.shared_tasks || 0) },
+                { strokeColor: '#1E88E5', strokeWidth: 3, strokeOpacity: 0.8, strokeStyle: 'dash' }
+            );
+            map.geoObjects.add(line);
+            connectionLines.push(line);
+            var pm = new ymaps.Placemark(
+                [pLat, pLon],
+                { balloonContent: (point.name || '') + '<br>Схожих категорий: ' + (point.shared_categories || 0) + '<br>Схожих задач: ' + (point.shared_tasks || 0) },
+                { preset: 'islands#blueCircleIcon' }
+            );
+            map.geoObjects.add(pm);
+            connectionLines.push(pm);
+        }
+    }
+
+    function clearConnections() {
+        if (!isMapReady) return;
+        for (var i = 0; i < connectionLines.length; i++) {
+            map.geoObjects.remove(connectionLines[i]);
+        }
+        connectionLines = [];
+    }
+</script>
+</body>
+</html>
