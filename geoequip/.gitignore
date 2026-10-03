@@ -30,3 +30,17 @@ CMakeLists.txt.user*
 # Testing & Autogen
 Testing/
 *_autogen/
+
+# Confidential & Environment
+.env
+*.pem
+*.key
+
+# Build outputs & IDE settings
+build/
+*.user
+.qtcreator/
+__pycache__/
+*.pyc
+.venv/
+venv/

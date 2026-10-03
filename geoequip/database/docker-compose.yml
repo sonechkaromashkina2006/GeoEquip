@@ -1,0 +1,19 @@
+version: '3.8'
+
+services:
+  neo4j:
+    image: neo4j:5.11-community
+    container_name: geoequip_db
+    ports:
+      - "7474:7474" # Web-интерфейс Neo4j Browser
+      - "7687:7687" # Протокол Bolt для подключения Python-сервера
+    environment:
+      - NEO4J_AUTH=neo4j/04207148  # Укажите ваш логин/пароль
+      - NEO4J_PLUGINS=["apoc"]
+    volumes:
+      - neo4j_data:/data
+      - neo4j_logs:/logs
+
+volumes:
+  neo4j_data:
+  neo4j_logs:
